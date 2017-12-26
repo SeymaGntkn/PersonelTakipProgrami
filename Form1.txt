@@ -1,0 +1,456 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.SqlClient;
+
+
+namespace Otom
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        SqlConnection baglanti;
+        SqlCommand komut;
+        SqlDataAdapter da;
+        DataSet ds;
+        SqlCommandBuilder csmd;
+
+        private void dateTimePicker1_ValueChanged(object sender, EventArgs e)
+        {
+            
+        }
+        public void griddoldur2()
+        {
+            baglanti = new SqlConnection("Data Source =.;Initial Catalog=Otom;Integrated Security = True");
+            
+            baglanti.Open();
+            da = new SqlDataAdapter("Select KartNo,Ad,Soyad,IzinBaslangic,IzinBitis,IzinAraligi,ToplamIzin,KullanilanIzin,KalanIzin From PersonelIzin ", baglanti);
+            ds = new System.Data.DataSet();
+            da.Fill(ds, "PersonelIzin");
+            dataGridView2.DataSource = ds.Tables[0];
+            baglanti.Close();
+        }
+        public void griddoldur()
+        {
+            baglanti = new SqlConnection("Data Source =.;Initial Catalog=Otom;Integrated Security = True");
+           
+            baglanti.Open();
+            da = new SqlDataAdapter("Select * From PersonelListesi ", baglanti);
+            ds = new System.Data.DataSet();
+            da.Fill(ds, "PersonelListesi");
+            dataGridView1.DataSource = ds.Tables[0];
+            baglanti.Close();
+        }
+     
+        private void Form1_Load(object sender, EventArgs e)
+        {
+         
+            comboBox1.SelectedIndex = 0;
+            
+            griddoldur();
+            kisisayisihesapla();
+        }
+        public void kisisayisihesapla()
+        {
+            int i = Convert.ToInt32(L_kisisayisi.Text); ;
+            i = dataGridView1.RowCount;
+            L_kisisayisi.Text = i.ToString();
+        }
+        private void B_Ekle_Click(object sender, EventArgs e)
+        {
+            string sorgu = "Insert into PersonelListesi (KartNo,Ad,Soyad,Unvan,GirisTarihi,DogumTarihi,OncekiYildanKalanIzin) values (@KartNo,@Ad,@Soyad,@Unvan,@GirisTarihi,@DogumTarihi,@OncekiYildanKalanIzin)";
+            komut = new SqlCommand(sorgu, baglanti);
+            komut.Parameters.AddWithValue("@KartNo", T_KartNo.Text);
+            komut.Parameters.AddWithValue("@Ad", T_Ad.Text);
+            komut.Parameters.AddWithValue("@Soyad", T_Soyad.Text);
+            komut.Parameters.AddWithValue("@Unvan", T_Unvan.Text);
+            komut.Parameters.AddWithValue("@GirisTarihi", DateTime_Giris.Value);
+            komut.Parameters.AddWithValue("@DogumTarihi", DateTime_Giris.Value);
+            komut.Parameters.AddWithValue("@OncekiYildanKalanIzin", T_OncekiIzin.Text);
+
+            baglanti.Open();
+            komut.ExecuteNonQuery();
+            baglanti.Close();
+            griddoldur();
+            kisisayisihesapla();
+
+        }
+
+        private void B_Sil_Click(object sender, EventArgs e)
+        {
+
+            string sorgu = "Delete From PersonelListesi Where KartNo=@KartNo";
+            komut = new SqlCommand(sorgu, baglanti);
+            komut.Parameters.AddWithValue("@KartNo", Convert.ToInt32(T_KartNo.Text));
+            baglanti.Open();
+            komut.ExecuteNonQuery();
+            baglanti.Close();
+            griddoldur();
+            kisisayisihesapla();
+        }
+
+        private void dataGridView1_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+
+            T_KartNo.Text = dataGridView1.CurrentRow.Cells[0].Value.ToString();
+            T_Ad.Text = dataGridView1.CurrentRow.Cells[1].Value.ToString();
+            T_Soyad.Text = dataGridView1.CurrentRow.Cells[2].Value.ToString();
+            T_Unvan.Text = dataGridView1.CurrentRow.Cells[3].Value.ToString();
+            DateTime_Giris.Text = dataGridView1.CurrentRow.Cells[4].Value.ToString();
+            DateTime_Dogum.Text = dataGridView1.CurrentRow.Cells[5].Value.ToString();
+            T_OncekiIzin.Text = dataGridView1.CurrentRow.Cells[6].Value.ToString();
+
+
+            string x = L_KullanilanIzin.Text;
+            string y = L_KalanIzinHakki.Text;
+            string c = T_OncekiIzin.Text;
+
+            if (c=="")
+            {
+                T_OncekiIzin.Text = "0";
+            }
+           
+                L_KullanilanIzin.Text = "0";
+                L_KalanIzinHakki.Text = "0";
+            
+            DateTime bTarih = Convert.ToDateTime(DateTime_SistemTarihi.Text);
+            DateTime kTarih = Convert.ToDateTime(DateTime_Giris.Text);
+            TimeSpan Sonuc = bTarih - kTarih;
+            L_TopamIzinHakki.Text = Sonuc.TotalDays.ToString();
+            L_ToplamYil.Text = (Sonuc.Days / 365).ToString();
+            hesapla();
+            int a = Convert.ToInt32(T_OncekiIzin.Text);
+            int b = Convert.ToInt32(L_TopamIzinHakki.Text);
+            b = b + a;
+            L_TopamIzinHakki.Text = b.ToString();
+            IzinBilgiGoster();
+        }
+
+        private void B_Temizle_Click(object sender, EventArgs e)
+        {
+            T_KartNo.Text = "";
+            T_Ad.Text = "";
+            T_Soyad.Text = "";
+            T_Unvan.Text = "";
+            DateTime_Giris.Text = "";
+            DateTime_Dogum.Text = "";
+        }
+        private void tablo1guncelle()
+        {
+            try
+            {
+                csmd = new SqlCommandBuilder(da);
+                da.Update(ds, "PersonelListesi");
+            }
+            catch
+            { }
+            string sorgu = "Update PersonelListesi Set Ad=@Ad,Soyad=@Soyad,Unvan=@Unvan,GirisTarihi=@GirisTarihi,DogumTarihi=@DogumTarihi Where KartNo=@KartNo";
+            komut = new SqlCommand(sorgu, baglanti);
+            komut.Parameters.AddWithValue("@KartNo", Convert.ToInt32(T_KartNo.Text));
+            komut.Parameters.AddWithValue("@Ad", T_Ad.Text);
+            komut.Parameters.AddWithValue("@Soyad", T_Soyad.Text);
+            komut.Parameters.AddWithValue("@Unvan", T_Unvan.Text);
+            komut.Parameters.AddWithValue("@GirisTarihi", DateTime_Giris.Value);
+            komut.Parameters.AddWithValue("@DogumTarihi", DateTime_Dogum.Value);
+            baglanti.Open();
+            komut.ExecuteNonQuery();
+            baglanti.Close();
+            griddoldur();
+        }
+        private void B_Guncelle_Click(object sender, EventArgs e)
+        {
+            tablo1guncelle();
+        }
+        private void hesapla()
+        {
+            int x;
+            x = Convert.ToInt32(L_ToplamYil.Text);
+
+
+            if (x < 1)
+            {
+                L_TopamIzinHakki.Text = "0";
+            }
+            else if (x <= 5)
+            {
+                L_TopamIzinHakki.Text = "14";
+            }
+            else if (x < 15)
+            {
+                L_TopamIzinHakki.Text = "20";
+            }
+            else
+            {
+                L_TopamIzinHakki.Text = "26";
+            }
+           
+
+
+        }
+
+        private void monthCalendar1_DateChanged(object sender, DateRangeEventArgs e)
+        {
+            DateTime_IzinBaslangic.Text = monthCalendar1.SelectionRange.Start.ToShortDateString();
+            DateTime_IzinBitis.Text = monthCalendar1.SelectionRange.End.ToShortDateString();
+            DateTime bTarih = Convert.ToDateTime(DateTime_IzinBaslangic.Text);
+            DateTime kTarih = Convert.ToDateTime(DateTime_IzinBitis.Text);
+            TimeSpan Sonuc = kTarih - bTarih;
+
+            L_IzinAraligi.Text = Sonuc.TotalDays.ToString();
+            int sonuc = Convert.ToInt32(L_IzinAraligi.Text);
+            sonuc += 1;
+            L_IzinAraligi.Text = sonuc.ToString();
+        }
+
+       
+        private void B_IzniAta_Click(object sender, EventArgs e)
+        {
+            //DateTime bTarih = Convert.ToDateTime(DateTime_IzinBaslangic.Text);
+            //DateTime kTarih = Convert.ToDateTime(DateTime_IzinBitis.Text);
+            //TimeSpan Sonuc = kTarih - bTarih;
+            int d = Convert.ToInt32(L_TopamIzinHakki.Text);
+            int b = Convert.ToInt32(L_KullanilanIzin.Text);
+
+         
+
+                int a = Convert.ToInt32(L_IzinAraligi.Text);
+                 b = Convert.ToInt32(L_KullanilanIzin.Text);
+                b = a + b;
+                L_KullanilanIzin.Text = Convert.ToString(b); ;
+
+                b = Convert.ToInt32(L_KullanilanIzin.Text);
+                d = Convert.ToInt32(L_TopamIzinHakki.Text);
+                int f = Convert.ToInt32(L_KalanIzinHakki.Text);
+                f = d - b;
+                L_KalanIzinHakki.Text = Convert.ToString(f);
+
+
+            if (b > d)
+            {
+
+                MessageBox.Show("Ýzin Günü Aþýldý. Lütfen Tekrar Deneyiniz.");
+            }
+            else
+            {
+                string sorgu = "Insert into PersonelIzin (KartNo,Ad,Soyad,IzinBaslangic,IzinBitis,IzinAraligi,ToplamIzin,KullanilanIzin,KalanIzin) values (@KartNo,@Ad,@Soyad,@IzinBaslangic,@IzinBitis,@IzinAraligi,@ToplamIzin,@KullanilanIzin,@KalanIzin)";
+                komut = new SqlCommand(sorgu, baglanti);
+                komut.Parameters.AddWithValue("@KartNo", Convert.ToInt32(T_KartNo.Text));
+                komut.Parameters.AddWithValue("@Ad", T_Ad.Text);
+                komut.Parameters.AddWithValue("@Soyad", T_Soyad.Text);
+                komut.Parameters.AddWithValue("@IzinBaslangic", DateTime_IzinBaslangic.Value);
+                komut.Parameters.AddWithValue("@IzinBitis", DateTime_IzinBitis.Value);
+                komut.Parameters.AddWithValue("@IzinAraligi", L_IzinAraligi.Text);
+                komut.Parameters.AddWithValue("@ToplamIzin", L_TopamIzinHakki.Text);
+                komut.Parameters.AddWithValue("@KullanilanIzin", L_KullanilanIzin.Text);
+                komut.Parameters.AddWithValue("@KalanIzin", L_KalanIzinHakki.Text);
+
+                baglanti.Open();
+                komut.ExecuteNonQuery();
+                baglanti.Close();
+            }
+
+                //griddoldur2();
+                IzinBilgiGoster();
+            
+        }
+
+        private void dataGridView1_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+
+           
+            
+        }
+
+        private void IzinBilgiGoster()
+        {
+            // Yýla göre sql sorgusu düzenlenecek
+            string sorguYilSarti = "";
+
+            if (comboBox1.SelectedIndex > 0)
+            {
+                sorguYilSarti = " AND DatePart(year, IzinBaslangic) = '" + comboBox1.Text + "' ";
+            }
+            baglanti = new SqlConnection("Data Source =.;Initial Catalog=Otom;Integrated Security = True");
+           
+            baglanti.Open();
+            SqlCommand komut = new SqlCommand("select KartNo,Ad,Soyad,IzinBaslangic,IzinBitis,IzinAraligi,ToplamIzin,KullanilanIzin, KalanIzin from PersonelIzin where KartNo='" + T_KartNo.Text + "' " + sorguYilSarti + " ORDER BY IzinBaslangic DESC", baglanti);
+            da = new SqlDataAdapter(komut);
+            ds = new DataSet();
+            da.Fill(ds);
+            dataGridView2.DataSource = ds.Tables[0];
+            baglanti.Close();
+
+        }
+
+        private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+          
+
+        }
+
+        private void dataGridView2_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            T_KartNo.Text = dataGridView2.CurrentRow.Cells[0].Value.ToString();
+            T_Ad.Text = dataGridView2.CurrentRow.Cells[1].Value.ToString();
+            T_Soyad.Text = dataGridView2.CurrentRow.Cells[2].Value.ToString();
+            DateTime_IzinBaslangic.Text = dataGridView2.CurrentRow.Cells[3].Value.ToString();
+            DateTime_IzinBitis.Text = dataGridView2.CurrentRow.Cells[4].Value.ToString();
+            L_IzinAraligi.Text = dataGridView2.CurrentRow.Cells[5].Value.ToString();
+            L_TopamIzinHakki.Text = dataGridView2.CurrentRow.Cells[6].Value.ToString();
+            L_KullanilanIzin.Text = dataGridView2.CurrentRow.Cells[7].Value.ToString();
+            L_KalanIzinHakki.Text = dataGridView2.CurrentRow.Cells[8].Value.ToString();
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            IzinBilgiGoster();
+        }
+
+        private void label12_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void izinListesiToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Form3 frm3 = new Form3();
+            frm3.ShowDialog();        }
+
+
+        private void panel2_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+
+       
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            
+        }
+
+        private void DateTime_IzinBaslangic_ValueChanged(object sender, EventArgs e)
+        {
+            DateTime bTarih = Convert.ToDateTime(DateTime_IzinBaslangic.Text);
+            DateTime kTarih = Convert.ToDateTime(DateTime_IzinBitis.Text);
+            TimeSpan Sonuc = kTarih - bTarih;
+
+            L_IzinAraligi.Text = Sonuc.TotalDays.ToString();
+            int sonuc = Convert.ToInt32(L_IzinAraligi.Text);
+            sonuc += 1;
+            L_IzinAraligi.Text = sonuc.ToString();
+        }
+
+        private void DateTime_IzinBitis_ValueChanged(object sender, EventArgs e)
+        {
+            DateTime bTarih = Convert.ToDateTime(DateTime_IzinBaslangic.Text);
+            DateTime kTarih = Convert.ToDateTime(DateTime_IzinBitis.Text);
+            TimeSpan Sonuc = kTarih - bTarih;
+
+            L_IzinAraligi.Text = Sonuc.TotalDays.ToString();
+            int sonuc = Convert.ToInt32(L_IzinAraligi.Text);
+            sonuc += 1;
+            L_IzinAraligi.Text = sonuc.ToString();
+        }
+
+        private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+           
+        }
+
+        private void dataGridView1_MouseClick(object sender, MouseEventArgs e)
+        {
+
+       
+
+        }
+
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            try
+            {
+                csmd = new SqlCommandBuilder(da);
+                da.Update(ds, "PersonelListesi");
+            }
+            catch
+            { }
+
+            string sorgu = "Update PersonelListesi Set OncekiYildanKalanIzin=@OncekiYildanKalanIzin Where KartNo=@KartNo";
+            komut = new SqlCommand(sorgu, baglanti);
+            komut.Parameters.AddWithValue("@KartNo", Convert.ToInt32(T_KartNo.Text));
+            komut.Parameters.AddWithValue("@OncekiYildanKalanIzin", T_OncekiIzin.Text);
+
+            baglanti.Open();
+            komut.ExecuteNonQuery();
+            baglanti.Close();
+            griddoldur();
+
+            int a = Convert.ToInt32(L_TopamIzinHakki.Text);
+            int b = Convert.ToInt32(T_OncekiIzin.Text);
+
+            a = a + b;
+            L_TopamIzinHakki.Text = a.ToString();
+            try
+            {
+                csmd = new SqlCommandBuilder(da);
+                da.Update(ds, "PersonelIzin");
+            }
+            catch
+            { }
+
+            string sorgu2 = "Update PersonelIzin Set ToplamIzin=@ToplamIzin Where KartNo=@KartNo";
+            komut = new SqlCommand(sorgu2, baglanti);
+            komut.Parameters.AddWithValue("@KartNo", Convert.ToInt32(T_KartNo.Text));
+            komut.Parameters.AddWithValue("@ToplamIzin", L_TopamIzinHakki.Text);
+
+            baglanti.Open();
+            komut.ExecuteNonQuery();
+            baglanti.Close();
+            IzinBilgiGoster();
+            //griddoldur2();
+        }
+
+        private void checkBox1_CheckedChanged_1(object sender, EventArgs e)
+        {
+            if (checkBox1.Checked == true)
+            {
+                T_OncekiIzin.Enabled = true;
+                button1.Enabled = true;
+            }
+            else
+            {
+                T_OncekiIzin.Enabled = false;
+                button1.Enabled = false;
+            }
+        }
+
+        private void T_Arama_TextChanged(object sender, EventArgs e)
+        {
+            baglanti.Open();
+            SqlCommand komut = new SqlCommand("select * from PersonelListesi where Ad like '%" + T_Arama.Text + "%'", baglanti);
+            da = new SqlDataAdapter(komut);
+            ds = new DataSet();
+            da.Fill(ds);
+            dataGridView1.DataSource = ds.Tables[0];
+            baglanti.Close();
+        }
+
+        private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }
+    }
+
+}

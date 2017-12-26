@@ -1,0 +1,75 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.SqlClient;
+
+namespace Otom
+{
+    public partial class Form3 : Form
+    {
+        public Form3()
+        {
+            InitializeComponent();
+        }
+        SqlConnection baglanti;
+        SqlCommand komut;
+        SqlDataAdapter da;
+        DataSet ds;
+        SqlCommandBuilder csmd;
+
+        private void Form3_Load(object sender, EventArgs e)
+        {
+            comboBox1.SelectedIndex = 0;
+            doldur();
+        }
+        private void Izýngoster()
+        {
+            string sorguYilSarti = "";
+
+            if (comboBox1.SelectedIndex > 0)
+            {
+                sorguYilSarti = " AND DatePart(year, IzinBaslangic) = '" + comboBox1.Text + "' ";
+            }
+            baglanti = new SqlConnection("Data Source =.;Initial Catalog=Otom;Integrated Security = True");
+           
+            baglanti.Open();
+            SqlCommand komut = new SqlCommand("select KartNo,Ad,Soyad,IzinBaslangic,IzinBitis,ToplamIzin,KullanilanIzin,KalanIzin from PersonelIzin where KartNo like '%" + textbox_KartNo.Text + "%'" + sorguYilSarti + " ", baglanti);
+            da = new SqlDataAdapter(komut);
+            ds = new DataSet();
+            da.Fill(ds);
+            dataGridView1.DataSource = ds.Tables[0];
+            baglanti.Close();
+        }
+        public void doldur()
+        {
+            baglanti = new SqlConnection("Data Source =.;Initial Catalog=Otom;Integrated Security = True");
+           
+            baglanti.Open();
+            da = new SqlDataAdapter("Select KartNo,Ad, Soyad, IzinBaslangic, IzinBitis,IzinAraligi,ToplamIzin,KullanilanIzin,KalanIzin From PersonelIzin ", baglanti);
+            //DataTable tablo = new DataTable();
+            ds = new System.Data.DataSet();
+            da.Fill(ds, "PersonelIzin");
+            //da.Fill(tablo);
+            //dataGridView2.DataSource = tablo;
+            dataGridView1.DataSource = ds.Tables[0];
+            baglanti.Close();
+        }
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            textbox_KartNo.Text = dataGridView1.CurrentRow.Cells[0].Value.ToString();
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            Izýngoster();
+        }
+    }
+}
